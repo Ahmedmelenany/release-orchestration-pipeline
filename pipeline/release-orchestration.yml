@@ -1,0 +1,177 @@
+name: Release Orchestration 
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version"
+        required: true
+        default: "v1.0.0"
+
+      full_deploy:
+        description: "Deploy all apps?"
+        required: true
+        type: boolean
+        default: false
+
+      backend:
+        description: "Deploy backend?"
+        required: false
+        type: boolean
+        default: false
+
+      frontend1:
+        description: "Deploy frontend1?"
+        required: false
+        type: boolean
+        default: false
+
+      frontend2:
+        description: "Deploy frontend2?"
+        required: false
+        type: boolean
+        default: false
+
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: "dev"
+
+jobs:
+  backend:
+    if: ${{ github.event.inputs.full_deploy == 'true' || github.event.inputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_REPO: ${{ secrets.NEXUS_REPO }}
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: company/backend
+          ref: dev
+          path: backend
+          token: ${{ secrets.GH_PAT_BACKEND }}
+
+      - name: Create Release Branch
+        run: |
+          VERSION=${{ github.event.inputs.release_version }}
+          cd backend
+          git config user.email "ci@company.com"
+          git config user.name "GitHub Actions CI"
+
+          if git ls-remote --heads origin release/"$VERSION" | grep -q "release/$VERSION"; then
+            echo "Release branch release/$VERSION already exists, skipping"
+          else
+            git checkout -b release/$VERSION
+            git push origin release/$VERSION
+            echo "Created release/$VERSION branch"
+          fi
+
+      - name: Cache .NET packages
+        uses: actions/cache@v4
+        with:
+          path: backend/packages
+          key: dotnet-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj') }}
+          restore-keys: dotnet-${{ runner.os }}-
+
+      - name: Build & Package
+        run: ./scripts/build_backend.sh ${{ github.event.inputs.release_version }}
+        
+      - name: Deploy Backend
+        run: ./scripts/deploy_backend.sh ${{ github.event.inputs.environment }} ${{ github.event.inputs.release_version }}
+        
+  frontend1:
+    if: ${{ github.event.inputs.full_deploy == 'true' || github.event.inputs.frontend1 == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_REPO: ${{ secrets.NEXUS_REPO }}
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: company/frontend1
+          ref: dev
+          path: frontend1
+          token: ${{ secrets.GH_PAT_FRONTEND1 }}
+
+      - name: Create Release Branch
+        run: |
+          VERSION=${{ github.event.inputs.release_version }}
+          cd frontend1
+          git config user.email "ci@company.com"
+          git config user.name "GitHub Actions CI"
+
+          if git ls-remote --heads origin release/"$VERSION" | grep -q "release/$VERSION"; then
+            echo "Release branch release/$VERSION already exists, skipping"
+          else
+            git checkout -b release/$VERSION
+            git push origin release/$VERSION
+            echo "Created release/$VERSION branch"
+          fi
+
+      - name: Cache npm (frontend1)
+        uses: actions/cache@v4
+        with:
+          path: frontend1/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('frontend1/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+
+      - name: Build & Package
+        run: ./scripts/build_frontend1.sh ${{ github.event.inputs.release_version }}
+      
+      - name: Deploy Frontend1
+        run: ./scripts/deploy_frontend1.sh ${{ github.event.inputs.environment }} ${{ github.event.inputs.release_version }}
+        
+  frontend2:
+    if: ${{ github.event.inputs.full_deploy == 'true' || github.event.inputs.frontend2 == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_REPO: ${{ secrets.NEXUS_REPO }}
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: company/frontend2
+          ref: dev
+          path: frontend2
+          token: ${{ secrets.GH_PAT_FRONTEND2 }}
+
+      - name: Create Release Branch
+        run: |
+          VERSION=${{ github.event.inputs.release_version }}
+          cd frontend2
+          git config user.email "ci@company.com"
+          git config user.name "GitHub Actions CI"
+
+          if git ls-remote --heads origin release/"$VERSION" | grep -q "release/$VERSION"; then
+            echo "Release branch release/$VERSION already exists, skipping"
+          else
+            git checkout -b release/$VERSION
+            git push origin release/$VERSION
+            echo "Created release/$VERSION branch"
+          fi
+
+      - name: Cache npm (frontend2)
+        uses: actions/cache@v4
+        with:
+          path: frontend2/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('frontend2/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+
+
+      - name: Build & Package
+        run: ./scripts/build_frontend2.sh ${{ github.event.inputs.release_version }}
+
+      - name: Deploy Frontend2
+        run: ./scripts/deploy_frontend2.sh ${{ github.event.inputs.environment }} ${{ github.event.inputs.release_version }}

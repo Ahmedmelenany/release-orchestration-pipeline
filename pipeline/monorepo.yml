@@ -1,0 +1,146 @@
+name: Monorepo Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version"
+        required: true
+        default: "v1.0.0"
+
+      create_release_branch:
+        description: "Create release branch?"
+        required: true
+        type: boolean
+        default: false
+
+      release_branch_name:
+        description: "Release branch name"
+        required: false
+        default: "release-${{ github.event.inputs.release_version }}"
+
+      full_deploy:
+        description: "Deploy all apps?"
+        required: true
+        type: boolean
+        default: false
+
+      backend:
+        description: "Deploy backend?"
+        required: false
+        type: boolean
+        default: false
+
+      frontend1:
+        description: "Deploy frontend1?"
+        required: false
+        type: boolean
+        default: false
+
+      frontend2:
+        description: "Deploy frontend2?"
+        required: false
+        type: boolean
+        default: false
+
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: "dev"
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.create_release_branch == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create release branch
+        run: |
+          BRANCH_NAME="${{ github.event.inputs.release_branch_name }}"
+          git checkout -b "$BRANCH_NAME"
+          git push origin "$BRANCH_NAME"
+
+  backend:
+    runs-on: ubuntu-latest
+    needs: [create-release-branch]
+    if: ${{ github.event.inputs.full_deploy == 'true' || github.event.inputs.backend == 'true' }}
+    env:
+      NEXUS_URL: ${{ secrets.NEXUS_URL }}
+      NEXUS_REPO: ${{ secrets.NEXUS_REPO }}
+      NEXUS_USER: ${{ secrets.NEXUS_USER }}
+      NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Build Backend (.NET API)
+        run: ./scripts/build_backend.sh ${{ github.event.inputs.release_version }}
+
+      - name: Deploy Backend
+        run: ./scripts/deploy_backend.sh ${{ github.event.inputs.environment }} ${{ github.event.inputs.release_version }}
+
+  frontend1:
+    runs-on: ubuntu-latest
+    needs: [create-release-branch]
+    if: ${{ github.event.inputs.full_deploy == 'true' || github.event.inputs.frontend1 == 'true' }}
+    env:
+      NEXUS_URL: ${{ secrets.NEXUS_URL }}
+      NEXUS_REPO: ${{ secrets.NEXUS_REPO }}
+      NEXUS_USER: ${{ secrets.NEXUS_USER }}
+      NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache node modules (frontend1)
+        uses: actions/cache@v4
+        with:
+          path: frontend1/node_modules
+          key: ${{ runner.os }}-frontend1-${{ hashFiles('frontend1/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend1-
+
+      - name: Build Frontend1 (Angular Web)
+        run: ./scripts/build_frontend1.sh ${{ github.event.inputs.release_version }}
+
+      - name: Deploy Frontend1
+        run: ./scripts/deploy_frontend1.sh ${{ github.event.inputs.environment }} ${{ github.event.inputs.release_version }}
+
+  frontend2:
+    runs-on: ubuntu-latest
+    needs: [create-release-branch]
+    if: ${{ github.event.inputs.full_deploy == 'true' || github.event.inputs.frontend2 == 'true' }}
+    env:
+      NEXUS_URL: ${{ secrets.NEXUS_URL }}
+      NEXUS_REPO: ${{ secrets.NEXUS_REPO }}
+      NEXUS_USER: ${{ secrets.NEXUS_USER }}
+      NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache node modules (frontend2)
+        uses: actions/cache@v4
+        with:
+          path: frontend2/node_modules
+          key: ${{ runner.os }}-frontend2-${{ hashFiles('frontend2/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend2-
+
+      - name: Build Frontend2 (Angular Admin)
+        run: ./scripts/build_frontend2.sh ${{ github.event.inputs.release_version }}
+
+      - name: Deploy Frontend2
+        run: ./scripts/deploy_frontend2.sh ${{ github.event.inputs.environment }} ${{ github.event.inputs.release_version }}
