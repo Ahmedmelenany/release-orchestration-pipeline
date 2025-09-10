@@ -1,41 +1,15 @@
 # release-orchestration-pipeline
-Design and implement a single pipeline to automate the release from three apps 
+Designing and Implementing a single pipeline to automate the releases from three apps. 
 
-Provide a README with:
-o Chosen tool(s) and why
-CICD: Gh actions
-• Backend: .Net (API)
-• Frontend 1: Angular(Web) 
-• Frontend 2: Angular(Admin)
+## Tech stack and Tools used
+- **Applications:**
+  - **Frontend-1:** Angular(Web) 
+  - **Frontend-2:** Angular(Admin)
+  - **Backend:** .Net (API)
 
-Artifact repository: Nexus
+- **CI/CD:** Github Actions -> Supports flexible workflows for parameterized release orchestration and native integration with GitHub 
 
-deployment: bash
+- **Artifact Repository:** Nexus -> Registry to store build artifacts (e.g. zips, tar files, packages) with versioning and rollbacks.
 
-o Steps to run your pipeline/workflow
-
-- Go to GitHub repository on the web.
-
-- Click the Actions tab.
-
-- In the left sidebar, select the workflow name (e.g., release-orchestration).
-
-- On the right, click the “Run workflow” button (green dropdown).
-
-- Add inputs (e.g., ), select them.
-
-- Click Run workflow.
-## CLI
-
-- gh auth login
-
-o How branching/versioning is handled
-
-o How artifacts are named/stored
-
-- Each App produces an artifact and publish to Nexus 
-
-
-o How partial deployments are handled
-
+- **Deployment Method:** Bash Scripts + EC2 -> Lightweight, simple, cost-effective and straightforward.
 
