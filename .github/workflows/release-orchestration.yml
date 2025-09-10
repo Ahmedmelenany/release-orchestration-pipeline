@@ -1,0 +1,86 @@
+name: Release Orchestration 
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version (e.g. v1.0.0)"
+        required: true
+        default: "v1.0.0"
+      apps:
+        description: "Which apps to deploy (all, backend, frontend1, frontend2)"
+        required: true
+        default: "all"
+      environment:
+        description: "Target environment (dev, staging, prod)"
+        required: true
+        default: "dev"
+
+jobs:
+  orchestrate-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Orchestration Repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Backend Repo
+        if: ${{ github.event.inputs.apps == 'all' || github.event.inputs.apps == 'backend' }}
+        uses: actions/checkout@v4
+        with:
+          repository: company/backend
+          ref: dev
+          path: backend
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Checkout Frontend1 Repo
+        if: ${{ github.event.inputs.apps == 'all' || github.event.inputs.apps == 'frontend1' }}
+        uses: actions/checkout@v4
+        with:
+          repository: company/frontend1
+          ref: dev
+          path: frontend1
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Checkout Frontend2 Repo
+        if: ${{ github.event.inputs.apps == 'all' || github.event.inputs.apps == 'frontend2' }}
+        uses: actions/checkout@v4
+        with:
+          repository: company/frontend2
+          ref: dev
+          path: frontend2
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Build Selected Apps
+        run: |
+          VERSION=${{ github.event.inputs.release_version }}
+          if [ "${{ github.event.inputs.apps }}" = "all" ] || [ "${{ github.event.inputs.apps }}" = "backend" ]; then
+            ./scripts/build_backend.sh $VERSION
+          fi
+          if [ "${{ github.event.inputs.apps }}" = "all" ] || [ "${{ github.event.inputs.apps }}" = "frontend1" ]; then
+            ./scripts/build_frontend1.sh $VERSION
+          fi
+          if [ "${{ github.event.inputs.apps }}" = "all" ] || [ "${{ github.event.inputs.apps }}" = "frontend2" ]; then
+            ./scripts/build_frontend2.sh $VERSION
+          fi
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.event.inputs.release_version }}
+          path: "*.tar.gz"
+
+      - name: Deploy Selected Apps
+        run: |
+          ENV=${{ github.event.inputs.environment }}
+          VERSION=${{ github.event.inputs.release_version }}
+
+          if [ "${{ github.event.inputs.apps }}" = "all" ] || [ "${{ github.event.inputs.apps }}" = "backend" ]; then
+            ./scripts/deploy_backend.sh $ENV $VERSION
+          fi
+          if [ "${{ github.event.inputs.apps }}" = "all" ] || [ "${{ github.event.inputs.apps }}" = "frontend1" ]; then
+            ./scripts/deploy_frontend1.sh $ENV $VERSION
+          fi
+          if [ "${{ github.event.inputs.apps }}" = "all" ] || [ "${{ github.event.inputs.apps }}" = "frontend2" ]; then
+            ./scripts/deploy_frontend2.sh $ENV $VERSION
+          fi
