@@ -11,7 +11,7 @@ both are valid depending on the company’s setup. I documented both Monorepo an
 ### Deployment Designs
 #### Polyrepo flow
 ![poly](./assets/polorepo.svg)
-#### monorepo flow
+#### Monorepo flow
 ![mono](./assets/monorepo.svg)
 ### Release Orchestration (Polyrepo)
 
