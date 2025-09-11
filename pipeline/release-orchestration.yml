@@ -6,7 +6,7 @@ on:
       release_version:
         description: "Release version"
         required: true
-        default: "v1.0.0"
+        default: "release/v1.0.0"
 
       full_deploy:
         description: "Deploy all apps?"
@@ -66,12 +66,12 @@ jobs:
           git config user.email "ci@company.com"
           git config user.name "GitHub Actions CI"
 
-          if git ls-remote --heads origin release/"$VERSION" | grep -q "release/$VERSION"; then
-            echo "Release branch release/$VERSION already exists, skipping"
+          if git ls-remote --heads origin release/"$VERSION" | grep -q "$VERSION"; then
+            echo "Release branch $VERSION already exists, skipping"
           else
-            git checkout -b release/$VERSION
-            git push origin release/$VERSION
-            echo "Created release/$VERSION branch"
+            git checkout -b $VERSION
+            git push origin $VERSION
+            echo "Created $VERSION branch"
           fi
 
       - name: Cache .NET packages
@@ -110,12 +110,12 @@ jobs:
           git config user.email "ci@company.com"
           git config user.name "GitHub Actions CI"
 
-          if git ls-remote --heads origin release/"$VERSION" | grep -q "release/$VERSION"; then
-            echo "Release branch release/$VERSION already exists, skipping"
+          if git ls-remote --heads origin release/"$VERSION" | grep -q "$VERSION"; then
+            echo "Release branch $VERSION already exists, skipping"
           else
-            git checkout -b release/$VERSION
-            git push origin release/$VERSION
-            echo "Created release/$VERSION branch"
+            git checkout -b $VERSION
+            git push origin $VERSION
+            echo "Created $VERSION branch"
           fi
 
       - name: Cache npm (frontend1)
@@ -154,12 +154,12 @@ jobs:
           git config user.email "ci@company.com"
           git config user.name "GitHub Actions CI"
 
-          if git ls-remote --heads origin release/"$VERSION" | grep -q "release/$VERSION"; then
-            echo "Release branch release/$VERSION already exists, skipping"
+          if git ls-remote --heads origin release/"$VERSION" | grep -q "$VERSION"; then
+            echo "Release branch $VERSION already exists, skipping"
           else
-            git checkout -b release/$VERSION
-            git push origin release/$VERSION
-            echo "Created release/$VERSION branch"
+            git checkout -b $VERSION
+            git push origin $VERSION
+            echo "Created $VERSION branch"
           fi
 
       - name: Cache npm (frontend2)

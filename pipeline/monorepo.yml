@@ -6,18 +6,7 @@ on:
       release_version:
         description: "Release version"
         required: true
-        default: "v1.0.0"
-
-      create_release_branch:
-        description: "Create release branch?"
-        required: true
-        type: boolean
-        default: false
-
-      release_branch_name:
-        description: "Release branch name"
-        required: false
-        default: "release-${{ github.event.inputs.release_version }}"
+        default: "release/v1.0.0"
 
       full_deploy:
         description: "Deploy all apps?"
@@ -56,14 +45,13 @@ on:
 jobs:
   create-release-branch:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.create_release_branch == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Create release branch
         run: |
-          BRANCH_NAME="${{ github.event.inputs.release_branch_name }}"
+          VERSION=${{ github.event.inputs.release_version }}
           git checkout -b "$BRANCH_NAME"
           git push origin "$BRANCH_NAME"
 
